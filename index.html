@@ -1,0 +1,902 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>IRCTC NextGen e-Ticketing System | Indian Railways Passenger Reservation Portal</title>
+  <meta name="description" content="IRCTC NextGen Passenger Reservation System with Custom DSA Architecture, Dynamic Segment Pricing, Tatkal Quota Rules, Passenger Berth Selection, and Geographic Corridor Validation.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- ================= TOP GOVT / BRAND BAR ================= -->
+  <header class="irctc-header">
+    <div class="header-top">
+      <div class="brand-left">
+        <div class="emblem-box">
+          <svg class="irctc-emblem" viewBox="0 0 100 100" width="44" height="44">
+            <circle cx="50" cy="50" r="46" fill="#0B2F5C" stroke="#FB792B" stroke-width="4"/>
+            <circle cx="50" cy="50" r="32" fill="none" stroke="#FFFFFF" stroke-width="2.5" stroke-dasharray="4,3"/>
+            <path d="M50 20 L50 80 M20 50 L80 50 M29 29 L71 71 M29 71 L71 29" stroke="#FB792B" stroke-width="2"/>
+            <circle cx="50" cy="50" r="14" fill="#E75B10"/>
+            <text x="50" y="55" font-family="'Outfit', sans-serif" font-size="12" font-weight="bold" fill="#FFFFFF" text-anchor="middle">IR</text>
+          </svg>
+        </div>
+        <div class="brand-titles">
+          <div class="brand-hindi">भारतीय रेल &bull; INDIAN RAILWAYS</div>
+          <div class="brand-portal">IRCTC NextGen e-Ticketing Portal <span class="dsa-badge">DSA Core Engine</span></div>
+          <div class="brand-sub">Government of India &bull; Safety | Security | Punctuality</div>
+        </div>
+      </div>
+
+      <div class="header-right">
+        <div class="clock-chip" id="liveClock">29-Oct-2026 | 19:30:00</div>
+        
+        <div class="wallet-badge" id="walletChip" title="IRCTC e-Wallet Available Balance">
+          <span class="wallet-icon">💳</span>
+          <span class="wallet-label">Wallet:</span>
+          <span class="wallet-amount" id="walletAmount">₹ 10,000.00</span>
+        </div>
+
+        <div class="user-chip" id="userBadge">
+          <span class="user-avatar" id="userAvatar">👤</span>
+          <span class="user-name" id="userNameDisplay">passenger1</span>
+          <span class="role-pill passenger" id="userRolePill">PASSENGER</span>
+        </div>
+
+        <button class="btn btn-outline-white btn-sm" id="authBtn" onclick="openAuthModal()">Switch / Login</button>
+      </div>
+    </div>
+
+    <!-- Navigation Bar -->
+    <nav class="irctc-nav" id="mainNavBar">
+      <div class="nav-links" id="navLinksContainer">
+        <!-- Dynamically rendered based on User Role (Passenger vs Admin) -->
+      </div>
+    </nav>
+
+    <!-- Notice Ticker Strip -->
+    <div class="notice-ticker">
+      <span class="ticker-label">📢 IRCTC NOTICE:</span>
+      <div class="ticker-content">
+        Dynamic 2-D Segment Inventory Active (₹150/hop). Tatkal Quota opens 24h prior to travel date. Real-time Geographic Rail Corridor Validation active. Multi-Option Payments (UPI, Cards, Wallet, NetBanking) with RBI Tokenization.
+      </div>
+    </div>
+  </header>
+
+  <!-- ================= MAIN CONTENT VIEWS (TABS) ================= -->
+  <main class="main-container">
+    
+    <!-- TAB 1: BOOK TICKET (COMPACT SEARCH & GROUPED TRAIN CARDS) -->
+    <section id="tab-book" class="tab-view active">
+      
+      <!-- COMPACT / COLLAPSIBLE SEARCH BAR -->
+      <div class="search-section-wrapper">
+        <div class="search-card compact-search-card" id="searchCardContainer">
+          
+          <!-- Collapsed Summary Bar (Visible when search is active) -->
+          <div class="search-summary-bar" id="searchSummaryBar" style="display:none;">
+            <div class="ssb-info">
+              <span class="ssb-station" id="ssbOrigin">NDLS</span>
+              <span class="ssb-arrow">➔</span>
+              <span class="ssb-station" id="ssbDest">MMCT</span>
+              <span class="ssb-divider">|</span>
+              <span class="ssb-date" id="ssbDate">01-Nov-2026</span>
+              <span class="ssb-divider">|</span>
+              <span class="ssb-quota" id="ssbQuota">GENERAL (GN)</span>
+              <span class="ssb-divider">|</span>
+              <span class="ssb-class" id="ssbClass">All Classes</span>
+            </div>
+            <button type="button" class="btn btn-outline btn-sm" onclick="toggleSearchForm()">
+              <span id="btnToggleSearchText">Modify Search ▾</span>
+            </button>
+          </div>
+
+          <!-- Full Search Form -->
+          <form id="searchTrainForm" class="search-form" onsubmit="handleSearchTrains(event)">
+            <div class="search-card-header">
+              <div class="card-title">
+                <span class="tab-icon">🚆</span> Book Train Tickets
+              </div>
+              <div class="header-tools">
+                <div class="pnr-quick-link" onclick="switchTab('tab-pnr')">PNR Status Enquiry ➔</div>
+              </div>
+            </div>
+
+            <!-- Balanced Single-Tier Input Grid -->
+            <div class="form-grid-balanced">
+              <!-- Origin Station -->
+              <div class="form-group fg-origin">
+                <label for="searchFromStation">From Station</label>
+                <div class="input-with-icon">
+                  <span class="field-icon">🚉</span>
+                  <input type="text" id="searchFromStation" list="stationList" placeholder="e.g. NDLS - New Delhi" value="NDLS - New Delhi" required autocomplete="off">
+                </div>
+              </div>
+
+              <!-- Swap Button -->
+              <div class="swap-btn-box">
+                <button type="button" class="btn-swap" id="swapStationsBtn" title="Swap Origin & Destination" onclick="swapSearchStations()">⇄</button>
+              </div>
+
+              <!-- Destination Station -->
+              <div class="form-group fg-dest">
+                <label for="searchToStation">To Station</label>
+                <div class="input-with-icon">
+                  <span class="field-icon">📍</span>
+                  <input type="text" id="searchToStation" list="stationList" placeholder="e.g. MMCT - Mumbai Central" value="MMCT - Mumbai Central" required autocomplete="off">
+                </div>
+              </div>
+
+              <!-- Date Picker with Large Accessible Icon -->
+              <div class="form-group fg-date">
+                <label for="searchJourneyDate">Journey Date</label>
+                <div class="input-with-icon">
+                  <span class="field-icon lg-icon">📅</span>
+                  <input type="date" id="searchJourneyDate" value="2026-11-01" required>
+                </div>
+              </div>
+
+              <!-- Quota Selector (General / Tatkal) -->
+              <div class="form-group fg-quota">
+                <label for="searchQuota">Quota</label>
+                <div class="select-with-arrow">
+                  <select id="searchQuota" onchange="onQuotaChanged()">
+                    <option value="GN" selected>GENERAL (GN)</option>
+                    <option value="TQ">TATKAL (TQ) - 24h Prior</option>
+                    <option value="LD">LADIES (LD)</option>
+                    <option value="SS">LOWER BERTH / SR. CITIZEN</option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- Class Selector -->
+              <div class="form-group fg-class">
+                <label for="searchClass">Class</label>
+                <div class="select-with-arrow">
+                  <select id="searchClass">
+                    <option value="ALL" selected>All Classes</option>
+                    <option value="3A">AC 3 Tier (3A)</option>
+                    <option value="2A">AC 2 Tier (2A)</option>
+                    <option value="1A">AC First (1A)</option>
+                    <option value="SL">Sleeper (SL)</option>
+                    <option value="2S">Second Sitting (2S)</option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- Search Button Seamlessly Aligned into the Input Grid -->
+              <div class="form-group fg-btn">
+                <button type="submit" class="btn btn-primary btn-search-balanced" id="btnFindTrains">
+                  <span>SEARCH TRAINS</span>
+                  <span>➔</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Tatkal Quota Rules Notice Bar (Dynamic when TQ selected) -->
+            <div class="tatkal-info-strip" id="tatkalInfoStrip" style="display:none;">
+              <span class="ti-icon">⚡</span>
+              <div class="ti-text" id="tatkalInfoText">
+                Tatkal booking opens 1 day (24 hours) prior to journey date at 10:00 AM for AC classes and 11:00 AM for Non-AC classes.
+              </div>
+              <label class="tatkal-sim-toggle" title="Allow booking Tatkal for demonstration purposes">
+                <input type="checkbox" id="simulateTatkalWindowOpen" checked onchange="onTatkalSimChanged()">
+                <span>Demo: Simulate Tatkal Booking Window Open</span>
+              </label>
+            </div>
+
+            <!-- Popular Corridor Shortcut Pills (Rounded Clickable Tags with Generous Spacing) -->
+            <div class="popular-routes-pills-bar">
+              <span class="pr-label">Popular Corridors:</span>
+              <div class="pills-container">
+                <button type="button" class="route-pill" onclick="quickFillRoute('NDLS - New Delhi', 'MMCT - Mumbai Central')">
+                  <span class="train-pill-icon">🚄</span> Delhi ➔ Mumbai
+                </button>
+                <button type="button" class="route-pill" onclick="quickFillRoute('NDLS - New Delhi', 'HWH - Howrah Jn')">
+                  <span class="train-pill-icon">🚄</span> Delhi ➔ Kolkata
+                </button>
+                <button type="button" class="route-pill" onclick="quickFillRoute('NDLS - New Delhi', 'MAS - Chennai Central')">
+                  <span class="train-pill-icon">🚄</span> Delhi ➔ Chennai (GT)
+                </button>
+                <button type="button" class="route-pill" onclick="quickFillRoute('MMCT - Mumbai Central', 'MAS - Chennai Central')">
+                  <span class="train-pill-icon">🚄</span> Mumbai ➔ Chennai
+                </button>
+                <button type="button" class="route-pill" onclick="quickFillRoute('MMCT - Mumbai Central', 'ADI - Ahmedabad Jn')">
+                  <span class="train-pill-icon">🚄</span> Mumbai ➔ Ahmedabad
+                </button>
+                <button type="button" class="route-pill" onclick="quickFillRoute('MAS - Chennai Central', 'SBC - KSR Bengaluru')">
+                  <span class="train-pill-icon">🚄</span> Chennai ➔ Bangalore
+                </button>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- Train Search Results Section -->
+      <div class="search-results-wrapper">
+        <div class="results-header" id="resultsHeader">
+          <div class="results-title-group">
+            <h2 class="results-title" id="resultsCountTitle">Available Trains (Query Results)</h2>
+            <div class="results-sub" id="resultsSubTitle">Showing real-time availability across 2-D segment boolean matrix</div>
+          </div>
+          <div class="filter-pills" id="resultsFilterPills">
+            <span class="filter-pill active" id="pillActiveQuota">GENERAL QUOTA</span>
+            <span class="filter-pill">Dynamic Segment Pricing: ₹150/hop</span>
+          </div>
+        </div>
+
+        <div class="train-cards-container" id="trainCardsContainer">
+          <!-- Dynamically populated with interactive, grouped Train Result Cards -->
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 2: PNR ENQUIRY & BOARDING PASS -->
+    <section id="tab-pnr" class="tab-view">
+      <div class="pnr-container">
+        <div class="card pnr-search-card">
+          <h2 class="card-title">🔍 Passenger PNR Status Enquiry (O(1) Hash Map)</h2>
+          <p class="card-subtitle">Enter your 10-digit reservation PNR to retrieve booking status, coach & berth assignment, or initiate cancellation.</p>
+          
+          <form class="pnr-form" onsubmit="handlePnrLookup(event)">
+            <div class="pnr-input-group">
+              <input type="text" id="pnrQueryInput" placeholder="Enter PNR Number (e.g. PNR4290000001)" required autocomplete="off">
+              <button type="submit" class="btn btn-primary" id="btnCheckPnr">GET PNR STATUS ➔</button>
+            </div>
+          </form>
+
+          <div class="quick-pnr-box" id="quickPnrBar" style="display:none;">
+            <span>Recent Bookings:</span>
+            <div id="recentPnrChips" class="recent-chips-box"></div>
+          </div>
+        </div>
+
+        <!-- Electronic Reservation Slip (Boarding Pass) Card -->
+        <div id="pnrSlipContainer" class="pnr-slip-container" style="display:none;">
+          <!-- Dynamically populated Electronic Reservation Slip (ERS) -->
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 3: MY BOOKINGS -->
+    <section id="tab-bookings" class="tab-view">
+      <div class="bookings-container">
+        <div class="card">
+          <div class="card-header-flex">
+            <div>
+              <h2 class="card-title">📋 My Ticket Bookings History</h2>
+              <p class="card-subtitle">All past and active reservations tied to your account. Tickets can be viewed, printed, or cancelled for instant refund.</p>
+            </div>
+            <button class="btn btn-outline" onclick="renderMyBookings()">↻ Refresh History</button>
+          </div>
+
+          <div class="table-responsive">
+            <table class="data-table" id="myBookingsTable">
+              <thead>
+                <tr>
+                  <th>PNR Number</th>
+                  <th>Train Details</th>
+                  <th>Journey Date</th>
+                  <th>Route (From ➔ To)</th>
+                  <th>Quota &amp; Class</th>
+                  <th>Status</th>
+                  <th>Coach / Seat</th>
+                  <th>Fare Paid</th>
+                  <th>Payment Mode</th>
+                  <th>Booked At</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="myBookingsTbody">
+                <!-- Dynamically populated -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 4: ADMIN TRAIN MANAGEMENT & ROUTE CORRIDOR BUILDER (STRICTLY ADMIN ONLY) -->
+    <section id="tab-admin" class="tab-view">
+      <div class="admin-notice-banner">
+        <div class="an-icon">🛡️</div>
+        <div>
+          <div class="an-title">IRCTC Rail Administration & Spatial Route Matrix Control (Authorized Railway Officers Only)</div>
+          <div class="an-desc">Define train schedules, inject or edit services with geographic corridor validation, or cancel discontinued trains from the Central Route Hash Buckets.</div>
+        </div>
+      </div>
+
+      <div class="admin-grid-layout">
+        <!-- LEFT: CORRIDOR ROUTE BUILDER WITH GEOGRAPHIC VALIDATION -->
+        <div class="card admin-builder-card">
+          <div class="card-header-flex">
+            <div>
+              <h3 class="card-title" id="builderFormTitle">➕ Train Route Configurator</h3>
+              <p class="card-subtitle">Origin, Terminus & Intermediate Stops with Geographic Rail Corridor Validation</p>
+            </div>
+            <button type="button" class="btn btn-sm btn-outline" id="btnResetBuilder" onclick="resetTrainBuilder()">Reset Form</button>
+          </div>
+
+          <form id="trainBuilderForm" onsubmit="handleSaveTrain(event)">
+            <div class="admin-form-grid">
+              <div class="form-group">
+                <label for="admTrainNo">Train Number (Unique Key)</label>
+                <input type="text" id="admTrainNo" placeholder="e.g. 12951" required>
+              </div>
+
+              <div class="form-group">
+                <label for="admTrainName">Train Name</label>
+                <input type="text" id="admTrainName" placeholder="e.g. TEJAS RAJDHANI EXP" required>
+              </div>
+
+              <div class="form-group">
+                <label for="admTrainDate">Journey Date</label>
+                <input type="date" id="admTrainDate" value="2026-11-01" required>
+              </div>
+
+              <div class="form-group">
+                <label for="admTrainCapacity">Seat Capacity (Per Segment)</label>
+                <input type="number" id="admTrainCapacity" min="1" max="24" value="4" required>
+              </div>
+            </div>
+
+            <!-- Step 1: Origin and Terminus Endpoints -->
+            <div class="sub-form-box">
+              <div class="box-title">1. Route Endpoints (Origin & Terminus)</div>
+              <div class="two-col-grid">
+                <div class="form-group">
+                  <label for="admOriginStation">Start / Origin Station</label>
+                  <select id="admOriginStation" onchange="onEndpointChanged()">
+                    <!-- Options populated from RAILWAY_NETWORK -->
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label for="admTerminusStation">End / Terminus Station</label>
+                  <select id="admTerminusStation" onchange="onEndpointChanged()">
+                    <!-- Options populated from RAILWAY_NETWORK -->
+                  </select>
+                </div>
+              </div>
+              <div class="corridor-detected-banner" id="corridorDetectedBanner">
+                <span class="cd-label">Identified Rail Corridor:</span>
+                <span class="cd-name" id="detectedCorridorName">Delhi - Mumbai Western Trunk Corridor</span>
+              </div>
+            </div>
+
+            <!-- Step 2: Intermediate Stoppages Builder (Geographically Validated) -->
+            <div class="sub-form-box">
+              <div class="box-title">2. Intermediate Stoppages (Select & Add Between Origin & Terminus)</div>
+              <div class="validation-helper-text">
+                <span class="vh-icon">ℹ️</span> Only stations physically located along the rail corridor between the selected Origin and Terminus can be added. Geographically incompatible stations (e.g. Chennai between Delhi & Mumbai) are automatically filtered and strictly rejected by the validator!
+              </div>
+
+              <div class="add-stop-row">
+                <div class="form-group flex-1">
+                  <label for="admIntermediateSelect">Available Valid Corridor Stations:</label>
+                  <select id="admIntermediateSelect">
+                    <!-- Automatically filtered to ONLY stations along this corridor -->
+                  </select>
+                </div>
+                <button type="button" class="btn btn-primary btn-add-stop" onclick="handleAddIntermediateStop()">
+                  <span>➕ Add Stop</span>
+                </button>
+              </div>
+
+              <!-- List of Added Intermediate Stops -->
+              <div class="stops-list-container" id="stopsListContainer">
+                <!-- Dynamically populated with stops, move up/down, and remove buttons -->
+              </div>
+            </div>
+
+            <!-- Live Track Visualizer & Preview -->
+            <div class="route-preview-box">
+              <div class="rp-title">Generated Railway Track Line & Pricing:</div>
+              <div class="track-line" id="routeTrackLine">
+                <!-- Visual dots and station labels -->
+              </div>
+              <div class="route-stats" id="routeStatsSummary">
+                Total Stations: 4 | Segments: 3 | Route Combinations: 6 | Dynamic Fare: ₹150 / hop
+              </div>
+            </div>
+
+            <!-- Form Action Button -->
+            <div class="admin-submit-row">
+              <button type="submit" class="btn btn-primary btn-lg" id="btnSubmitTrain">
+                <span id="btnSubmitTrainText">➕ INJECT TRAIN INTO ROUTE MATRIX</span>
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <!-- RIGHT: ACTIVE TRAINS DIRECTORY (REMOVE & EDIT) -->
+        <div class="card admin-directory-card">
+          <div class="card-header-flex">
+            <div>
+              <h3 class="card-title">Active Trains Directory</h3>
+              <p class="card-subtitle" id="activeTrainsCountSub">Trains registered in the Central Route Matrix</p>
+            </div>
+            <button class="btn btn-sm btn-outline" onclick="renderActiveTrainsDirectory()">↻ Refresh Directory</button>
+          </div>
+
+          <div class="table-responsive" style="max-height: 540px; overflow-y: auto;">
+            <table class="data-table" id="adminTrainsTable">
+              <thead>
+                <tr>
+                  <th>Train</th>
+                  <th>Date</th>
+                  <th>Route Chain</th>
+                  <th>Capacity</th>
+                  <th>Booked</th>
+                  <th>Waitlist</th>
+                  <th>Management Actions</th>
+                </tr>
+              </thead>
+              <tbody id="adminTrainsTbody">
+                <!-- Dynamically populated -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 5: DSA LIVE ENGINE & 2-D SEGMENT MATRIX INSPECTOR -->
+    <section id="tab-dsa" class="tab-view">
+      <div class="dsa-container">
+        <div class="card dsa-header-card">
+          <div class="card-header-flex">
+            <div>
+              <h2 class="card-title">🧬 Custom Data Structures & Concurrency Engine Inspector</h2>
+              <p class="card-subtitle">Real-time inspection of 2-D Segment Matrices, Separate-Chaining Hash Buckets, and FIFO Waitlist Queue Pointers.</p>
+            </div>
+            <div class="dsa-selector-group">
+              <label for="dsaTrainSelect">Select Train to Inspect:</label>
+              <select id="dsaTrainSelect" onchange="renderDsaVisualizer()">
+                <!-- Populated with all trains -->
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Top Section: 2-D Segment Matrix Bitmap -->
+        <div class="card matrix-card">
+          <div class="card-header-flex">
+            <div>
+              <h3 class="card-title">🗺️ 2-D Segment Inventory Bitmap Matrix</h3>
+              <p class="card-subtitle">Stations Segments (Rows) &times; Seat Capacity (Columns). Multi-hop seat reuse allocation algorithm.</p>
+            </div>
+            <div class="legend-box">
+              <span class="legend-item"><span class="legend-dot green"></span> Free / Available</span>
+              <span class="legend-item"><span class="legend-dot red"></span> Booked / Occupied</span>
+            </div>
+          </div>
+
+          <div class="matrix-grid-scroll" id="matrixGridContainer">
+            <!-- 2-D Grid rendered here -->
+          </div>
+        </div>
+
+        <!-- Bottom Split: Confirmed Singly Linked List vs FIFO Pointer Queue -->
+        <div class="dsa-split-grid">
+          <!-- Confirmed Roster: Singly Linked List -->
+          <div class="card">
+            <div class="card-header-flex">
+              <div>
+                <h3 class="card-title">🔗 Confirmed Roster: Singly Linked List</h3>
+                <p class="card-subtitle">O(1) insertion at tail with head/tail tracking</p>
+              </div>
+              <span class="badge badge-success" id="dsaConfirmedCount">0 Passengers</span>
+            </div>
+            <div class="roster-list" id="dsaConfirmedList">
+              <!-- Linked list nodes rendered -->
+            </div>
+          </div>
+
+          <!-- Waiting List: FIFO Pointer Queue -->
+          <div class="card">
+            <div class="card-header-flex">
+              <div>
+                <h3 class="card-title">⏳ Waiting List: FIFO Pointer Queue</h3>
+                <p class="card-subtitle">O(1) enqueue / dequeue with ReentrantLock concurrency</p>
+              </div>
+              <span class="badge badge-warning" id="dsaWaitlistCount">0 Waiting</span>
+            </div>
+            <div class="roster-list" id="dsaWaitlistList">
+              <!-- FIFO Queue nodes rendered -->
+            </div>
+          </div>
+        </div>
+
+        <!-- DSA Metrics Bar -->
+        <div class="card dsa-metrics-bar" id="dsaMetricsBar">
+          <div class="metric-col">
+            <div class="metric-val">1009</div>
+            <div class="metric-name">Hash Table Prime Buckets</div>
+          </div>
+          <div class="metric-col">
+            <div class="metric-val">O(1)</div>
+            <div class="metric-name">Amortized PNR Lookup</div>
+          </div>
+          <div class="metric-col">
+            <div class="metric-val">O(L &times; S)</div>
+            <div class="metric-name">Segment Availability Scan</div>
+          </div>
+          <div class="metric-col">
+            <div class="metric-val">ReentrantLock</div>
+            <div class="metric-name">Thread-Safe Booking Concurrency</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ================= PASSENGER DETAILS ENTRY MODAL (STEP 3) ================= -->
+  <div class="modal-overlay" id="passengerModal" onclick="closeModalOnOverlay(event, 'passengerModal')">
+    <div class="modal-dialog passenger-dialog">
+      <div class="modal-header">
+        <div>
+          <div class="modal-title">Passenger Details &amp; Berth Preference</div>
+          <div class="modal-sub-muted" id="passengerModalSub">Train: 12951 - TEJAS RAJDHANI | Class: 3A</div>
+        </div>
+        <button class="modal-close" onclick="closePassengerModal()">✕</button>
+      </div>
+
+      <div class="modal-body">
+        <form id="passengerDetailsForm" onsubmit="handlePassengerFormSubmit(event)">
+          <!-- Train Journey Banner in Modal -->
+          <div class="journey-summary-pill-box" id="modalJourneyPill">
+            <!-- Dynamically populated with From ➔ To, Date, Selected Class, Fare -->
+          </div>
+
+          <div class="passenger-inputs-grid">
+            <div class="form-group span-2">
+              <label for="paxName">Passenger Full Name (As per Govt ID Card)</label>
+              <input type="text" id="paxName" placeholder="e.g. Rahul Kumar" value="Rahul Kumar" required autocomplete="name">
+            </div>
+
+            <div class="form-group">
+              <label for="paxAge">Age (Years)</label>
+              <input type="number" id="paxAge" min="5" max="110" value="28" required>
+            </div>
+
+            <div class="form-group">
+              <label for="paxGender">Gender</label>
+              <select id="paxGender">
+                <option value="MALE" selected>Male</option>
+                <option value="FEMALE">Female</option>
+                <option value="TRANSGENDER">Transgender</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="paxBerthPref">Berth / Seat Preference</label>
+              <select id="paxBerthPref" onchange="onBerthPreferenceChanged()">
+                <option value="NO_PREF" selected>No Preference</option>
+                <option value="LOWER">Lower Berth</option>
+                <option value="MIDDLE">Middle Berth</option>
+                <option value="UPPER">Upper Berth</option>
+                <option value="SIDE_LOWER">Side Lower Berth</option>
+                <option value="SIDE_UPPER">Side Upper Berth</option>
+                <option value="WINDOW">Window Seat (2S)</option>
+              </select>
+            </div>
+
+            <!-- Specific Seat Selection Option from 2-D Matrix -->
+            <div class="form-group">
+              <label for="paxSpecificSeat">Specific Seat Selection</label>
+              <select id="paxSpecificSeat">
+                <option value="AUTO" selected>Auto-Assign Best Free Seat</option>
+                <!-- Populated dynamically with available seat numbers from matrix -->
+              </select>
+            </div>
+
+            <div class="form-group span-2">
+              <label for="paxMobile">Contact Mobile Number (For SMS Boarding Ticket)</label>
+              <input type="tel" id="paxMobile" placeholder="e.g. 9876543210" value="9876543210" pattern="[0-9]{10}" required>
+            </div>
+          </div>
+
+          <div class="form-checkbox-group">
+            <label class="checkbox-label">
+              <input type="checkbox" id="chkAutoUpgrade" checked>
+              <span>Consider for Free Auto-Upgradation to higher class if seats remain vacant</span>
+            </label>
+          </div>
+
+          <div class="modal-footer">
+            <button type="button" class="btn btn-outline" onclick="closePassengerModal()">Back</button>
+            <button type="submit" class="btn btn-primary btn-proceed-pay" id="btnProceedToPay">
+              <span>CONTINUE TO PAYMENT (₹ 650.00)</span>
+              <span>➔</span>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= MULTI-OPTION PAYMENT GATEWAY MODAL (STEP 4) ================= -->
+  <div class="modal-overlay" id="paymentModal" onclick="closeModalOnOverlay(event, 'paymentModal')">
+    <div class="modal-dialog payment-dialog">
+      <div class="modal-header payment-modal-header">
+        <div>
+          <div class="modal-title">IRCTC Multi-Option Digital Payment Gateway</div>
+          <div class="modal-sub-white">RBI Tokenization Compliant &bull; 256-Bit SSL Secured Transaction</div>
+        </div>
+        <button class="modal-close" onclick="closePaymentModal()">✕</button>
+      </div>
+
+      <div class="modal-body payment-modal-body">
+        <!-- Streamlined / Minimalist Order Summary with Expandable Accordion -->
+        <div class="order-summary-box">
+          <div class="osb-main-row">
+            <div>
+              <div class="osb-train-name" id="paySummaryTrain">12951 | TEJAS RAJDHANI EXP</div>
+              <div class="osb-route" id="paySummaryRoute">New Delhi (NDLS) ➔ Mumbai Central (MMCT)</div>
+              <div class="osb-pax" id="paySummaryPax">Passenger: Rahul Kumar (28, Male) | Class: 3A | Quota: GENERAL</div>
+            </div>
+            <div class="osb-amount-box">
+              <div class="osb-amt-lbl">TOTAL AMOUNT</div>
+              <div class="osb-amt-val" id="paySummaryTotalFare">₹ 650.00</div>
+            </div>
+          </div>
+
+          <!-- Expandable Stoppages & Fare Breakdown Accordion -->
+          <div class="expandable-breakdown-toggle" onclick="toggleFareBreakdown()">
+            <span id="fareBreakdownToggleText">▾ View Stoppages &amp; Fare Calculation</span>
+          </div>
+
+          <div class="expandable-breakdown-content" id="fareBreakdownContent" style="display:none;">
+            <div class="fbc-stoppages" id="payStoppagesList">
+              <!-- Dynamically populated with concise station hops -->
+            </div>
+            <div class="fbc-calc" id="payFareFormula">
+              Base Segment Rate (₹150 &times; 3 hops) = ₹450 + Class/Tatkal Surcharge (₹200) = ₹650.00
+            </div>
+          </div>
+        </div>
+
+        <!-- Saved Payment Method One-Click Banner -->
+        <div class="saved-payment-banner" id="savedPaymentBanner" style="display:none;">
+          <div class="sp-left">
+            <div class="sp-tag">⭐ SAVED PAYMENT METHOD ON FILE:</div>
+            <div class="sp-desc" id="savedPaymentDesc">RuPay Card ending in •••• 8821</div>
+          </div>
+          <button type="button" class="btn btn-sm btn-success" onclick="payWithSavedMethod()">Instant 1-Click Pay</button>
+        </div>
+
+        <!-- Payment Method Tabs -->
+        <div class="payment-tabs-bar">
+          <button class="pay-tab-btn active" onclick="switchPayTab('WALLET')">💳 IRCTC Wallet</button>
+          <button class="pay-tab-btn" onclick="switchPayTab('UPI')">📱 UPI (GPay / PhonePe)</button>
+          <button class="pay-tab-btn" onclick="switchPayTab('CARD')">💳 Credit / Debit Card</button>
+          <button class="pay-tab-btn" onclick="switchPayTab('NETBANKING')">🏦 Net Banking</button>
+        </div>
+
+        <!-- TAB CONTENT 1: IRCTC WALLET -->
+        <div class="pay-tab-content active" id="payContent-WALLET">
+          <div class="wallet-pay-box">
+            <div class="wp-icon">👛</div>
+            <div class="wp-details">
+              <h4>IRCTC e-Wallet Express Checkout</h4>
+              <p>Current Available Balance: <strong class="text-green" id="payWalletBalance">₹ 10,000.00</strong></p>
+              <p>Fare to deduct: <strong class="text-orange" id="payWalletDeduct">₹ 650.00</strong></p>
+              <p class="wp-hint">Instant deduction and immediate reservation confirmation. Auto-refunds credited in &lt; 1 second upon cancellation.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB CONTENT 2: UPI -->
+        <div class="pay-tab-content" id="payContent-UPI">
+          <div class="upi-pay-box">
+            <div class="form-group">
+              <label for="upiVpaInput">Enter Virtual Payment Address (UPI ID)</label>
+              <input type="text" id="upiVpaInput" placeholder="e.g. yourname@okhdfcbank" value="passenger1@okhdfcbank">
+            </div>
+
+            <div class="upi-apps-row">
+              <span class="upi-label">Supported Apps:</span>
+              <span class="upi-badge">Google Pay</span>
+              <span class="upi-badge">PhonePe</span>
+              <span class="upi-badge">Paytm UPI</span>
+              <span class="upi-badge">BHIM</span>
+              <span class="upi-badge">Cred</span>
+            </div>
+
+            <div class="qr-simulation-box">
+              <div class="qr-code-placeholder">
+                <svg viewBox="0 0 100 100" width="70" height="70">
+                  <rect x="0" y="0" width="100" height="100" fill="#FFFFFF"/>
+                  <rect x="10" y="10" width="25" height="25" fill="#0B2F5C"/>
+                  <rect x="15" y="15" width="15" height="15" fill="#FFFFFF"/>
+                  <rect x="18" y="18" width="9" height="9" fill="#0B2F5C"/>
+                  <rect x="65" y="10" width="25" height="25" fill="#0B2F5C"/>
+                  <rect x="70" y="15" width="15" height="15" fill="#FFFFFF"/>
+                  <rect x="73" y="18" width="9" height="9" fill="#0B2F5C"/>
+                  <rect x="10" y="65" width="25" height="25" fill="#0B2F5C"/>
+                  <rect x="15" y="70" width="15" height="15" fill="#FFFFFF"/>
+                  <rect x="18" y="73" width="9" height="9" fill="#0B2F5C"/>
+                  <rect x="45" y="15" width="10" height="10" fill="#0B2F5C"/>
+                  <rect x="45" y="45" width="15" height="15" fill="#FB792B"/>
+                  <rect x="65" y="65" width="12" height="12" fill="#0B2F5C"/>
+                </svg>
+              </div>
+              <div class="qr-text">
+                <strong>Or Scan &amp; Pay via any UPI App</strong>
+                <p>Dynamic QR linked to Amount <span id="qrAmountSpan">₹ 650.00</span></p>
+              </div>
+            </div>
+
+            <label class="checkbox-label">
+              <input type="checkbox" id="saveUpiCheckbox" checked>
+              <span>Save this UPI ID safely for future 1-click checkout (RBI Tokenized)</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- TAB CONTENT 3: CARDS -->
+        <div class="pay-tab-content" id="payContent-CARD">
+          <div class="card-pay-box">
+            <!-- Interactive Virtual Card Preview -->
+            <div class="virtual-card-preview" id="virtualCardPreview">
+              <div class="vc-top">
+                <span class="vc-chip">💳</span>
+                <span class="vc-network" id="vcNetwork">RuPay</span>
+              </div>
+              <div class="vc-number" id="vcNumber">4532 &bull;&bull;&bull;&bull; &bull;&bull;&bull;&bull; 8821</div>
+              <div class="vc-bottom">
+                <div>
+                  <div class="vc-lbl">CARDHOLDER</div>
+                  <div class="vc-name" id="vcName">RAHUL KUMAR</div>
+                </div>
+                <div>
+                  <div class="vc-lbl">EXPIRES</div>
+                  <div class="vc-exp" id="vcExp">08/28</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Card Inputs Form -->
+            <div class="card-inputs-grid">
+              <div class="form-group span-2">
+                <label for="cardNoInput">Card Number (16 Digits)</label>
+                <input type="text" id="cardNoInput" placeholder="4532 8812 3456 8821" maxlength="19" value="4532 8812 3456 8821" oninput="formatCardNumber(this)">
+              </div>
+              <div class="form-group span-2">
+                <label for="cardHolderInput">Cardholder Name (As on Card)</label>
+                <input type="text" id="cardHolderInput" placeholder="e.g. RAHUL KUMAR" value="RAHUL KUMAR" oninput="updateCardHolder(this)">
+              </div>
+              <div class="form-group">
+                <label for="cardExpiryInput">Expiry (MM/YY)</label>
+                <input type="text" id="cardExpiryInput" placeholder="08/28" maxlength="5" value="08/28" oninput="formatCardExpiry(this)">
+              </div>
+              <div class="form-group">
+                <label for="cardCvvInput">CVV / CVC (3-digits)</label>
+                <input type="password" id="cardCvvInput" placeholder="•••" maxlength="3" value="821">
+              </div>
+            </div>
+
+            <div class="rbi-security-notice">
+              🔒 <strong>Government / RBI Tokenization Rule:</strong> In compliance with RBI guidelines, card credentials are tokenized. Raw CVV is never stored.
+            </div>
+
+            <label class="checkbox-label">
+              <input type="checkbox" id="saveCardCheckbox" checked>
+              <span>Securely save card token for future bookings (Only last 4 digits saved)</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- TAB CONTENT 4: NET BANKING -->
+        <div class="pay-tab-content" id="payContent-NETBANKING">
+          <div class="netbanking-pay-box">
+            <label class="field-title">Select Your Bank for Internet Banking:</label>
+            <div class="bank-tiles-grid" id="bankTilesGrid">
+              <div class="bank-tile selected" onclick="selectBank(this, 'State Bank of India (SBI)')">
+                <span class="bank-icon">🏛️</span>
+                <span class="bank-name">SBI</span>
+              </div>
+              <div class="bank-tile" onclick="selectBank(this, 'HDFC Bank')">
+                <span class="bank-icon">🏢</span>
+                <span class="bank-name">HDFC Bank</span>
+              </div>
+              <div class="bank-tile" onclick="selectBank(this, 'ICICI Bank')">
+                <span class="bank-icon">🏦</span>
+                <span class="bank-name">ICICI Bank</span>
+              </div>
+              <div class="bank-tile" onclick="selectBank(this, 'Axis Bank')">
+                <span class="bank-icon">🏬</span>
+                <span class="bank-name">Axis Bank</span>
+              </div>
+              <div class="bank-tile" onclick="selectBank(this, 'Punjab National Bank (PNB)')">
+                <span class="bank-icon">🏛️</span>
+                <span class="bank-name">PNB</span>
+              </div>
+              <div class="bank-tile" onclick="selectBank(this, 'Bank of Baroda')">
+                <span class="bank-icon">🏢</span>
+                <span class="bank-name">Bank of Baroda</span>
+              </div>
+            </div>
+
+            <label class="checkbox-label" style="margin-top: 14px;">
+              <input type="checkbox" id="saveBankCheckbox" checked>
+              <span>Remember preferred bank for faster checkout</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Payment Action Buttons -->
+        <div class="payment-modal-footer">
+          <button type="button" class="btn btn-outline" onclick="closePaymentModal()">Back</button>
+          <button type="button" class="btn btn-primary btn-pay-now" id="btnConfirmPayment" onclick="executePaymentAndBook()">
+            <span class="lock-icon">🔒</span>
+            <span id="btnPayAmountText">PAY ₹ 650.00 &amp; CONFIRM TICKET</span>
+            <span class="btn-arrow">➔</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= AUTH / LOGIN MODAL ================= -->
+  <div class="modal-overlay" id="authModal" onclick="closeModalOnOverlay(event, 'authModal')">
+    <div class="modal-dialog auth-dialog">
+      <div class="modal-header">
+        <div class="modal-title">Sign In to IRCTC Portal</div>
+        <button class="modal-close" onclick="closeAuthModal()">✕</button>
+      </div>
+
+      <div class="modal-body">
+        <p class="modal-sub">Log in with Passenger credentials to book tickets, or Railway Officer credentials to manage routes and trains.</p>
+        
+        <div class="quick-login-grid">
+          <div class="quick-card passenger" onclick="quickFillAuth('passenger1', 'pass123')">
+            <div class="qc-role">PASSENGER LOGIN</div>
+            <div class="qc-user">passenger1 / pass123</div>
+            <div class="qc-desc">Search, Book, PNR, Multi-Payment, My Bookings</div>
+          </div>
+          <div class="quick-card admin" onclick="quickFillAuth('admin@irctc.res.in', 'adminRoot')">
+            <div class="qc-role">RAILWAY ADMIN OFFICER</div>
+            <div class="qc-user">admin@irctc.res.in / adminRoot</div>
+            <div class="qc-desc">Train Injection, Route Builder, Cancellation</div>
+          </div>
+        </div>
+
+        <form id="authForm" onsubmit="handleAuthSubmit(event)">
+          <div class="form-group">
+            <label for="authUserId">Username / User ID</label>
+            <input type="text" id="authUserId" value="passenger1" required autocomplete="username">
+          </div>
+
+          <div class="form-group">
+            <label for="authPassword">Password</label>
+            <input type="password" id="authPassword" value="pass123" required autocomplete="current-password">
+          </div>
+
+          <div class="auth-error-msg" id="authErrorMsg"></div>
+
+          <div class="modal-footer">
+            <button type="submit" class="btn btn-primary btn-block">AUTHENTICATE SESSION ➔</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= DATALIST FOR STATIONS AUTOCOMPLETE ================= -->
+  <datalist id="stationList">
+    <!-- Populated dynamically from RAILWAY_NETWORK.stations -->
+  </datalist>
+
+  <!-- ================= NOTIFICATION TOAST ================= -->
+  <div id="toastNotification" class="toast"></div>
+
+  <!-- Scripts -->
+  <script src="app.js"></script>
+</body>
+</html>
